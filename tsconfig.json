@@ -4,9 +4,9 @@
     "lib": ["dom", "es2020"],
     "module": "esnext",
     "moduleResolution": "node",
-    "strict": false,
+    "types": ["node"],
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "types": ["node"]
+    "skipLibCheck": true,
+    "strict": false
   }
 }
