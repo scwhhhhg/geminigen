@@ -1,25 +1,12 @@
-import axios from "axios";
-import FormData from "form-data";
-import { generatePrompt } from "./prompt";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler() {
-  const prompt = await generatePrompt();
-
-  const form = new FormData();
-  form.append("prompt", prompt);
-  form.append("model", "nano-banana-pro");
-  form.append("aspect_ratio", "3:4");
-
-  const r = await axios.post(
-    "https://api.geminigen.ai/uapi/v1/generate_image",
-    form,
-    {
-      headers: {
-        "x-api-key": process.env.GEMINIGEN_API_KEY,
-        ...form.getHeaders()
-      }
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  res.status(200).json({
+    ok: true,
+    method: req.method,
+    env: {
+      hasGroq: !!process.env.GROQ_API_KEY,
+      hasGeminigen: !!process.env.GEMINIGEN_API_KEY
     }
-  );
-
-  // simpan uuid + prompt ke DB / KV
+  });
 }
