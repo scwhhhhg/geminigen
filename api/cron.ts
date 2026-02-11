@@ -1,12 +1,17 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import axios from "axios";
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  res.status(200).json({
-    ok: true,
-    method: req.method,
-    env: {
-      hasGroq: !!process.env.GROQ_API_KEY,
-      hasGeminigen: !!process.env.GEMINIGEN_API_KEY
-    }
-  });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    const r = await axios.get("https://httpbin.org/get");
+
+    res.json({
+      ok: true,
+      axios: true,
+      status: r.status
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 }
