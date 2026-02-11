@@ -1,11 +1,21 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Groq from "groq-sdk";
+import { uploadToR2 } from "../lib/r2";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
   try {
-    // 1️⃣ Generate prompt dari Groq
+    if (req.method !== "POST") {
+      return res.status(200).json({ alive: true });
+    }
+
+    // =============================
+    // 1️⃣ Generate Prompt (Groq)
+    // =============================
     const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY!
+      apiKey: process.env.GROQ_API_KEY!,
     });
 
     const completion = await groq.chat.completions.create({
@@ -14,47 +24,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         {
           role: "user",
           content: `
-Buat 1 prompt foto realistis wanita berhijab estetik ala Instagram / Pinterest.
-Detailkan pose, lighting, kamera profesional, depth of field, dan suasana.
-Jawab hanya 1 paragraf prompt tanpa penjelasan tambahan.
-          `
-        }
-      ]
+Buat 1 prompt foto wanita berhijab realistis ala Instagram/Pinterest.
+Detailkan pose estetik, lighting natural, kamera profesional,
+depth of field, suasana hangat, photorealistic.
+Jawab hanya 1 paragraf.
+          `,
+        },
+      ],
     });
 
     const prompt = completion.choices[0].message.content;
 
-    // 2️⃣ Kirim ke GeminiGen
+    // =============================
+    // 2️⃣ Generate Image (GeminiGen)
+    // =============================
     const formData = new FormData();
     formData.append("prompt", prompt!);
     formData.append("model", "nano-banana-pro");
+    formData.append("aspect_ratio", "4:5");
+    formData.append("style", "Photorealistic");
 
-    const response = await fetch(
-  "https://api.geminigen.ai/uapi/v1/generate_image",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.GEMINIGEN_API_KEY!
-    },
-    body: JSON.stringify({
-      prompt: prompt,
-      model: "nano-banana-pro"
-    })
-  }
-);
+    const imageResponse = await fetch(
+      "https://api.geminigen.ai/uapi/v1/generate_image",
+      {
+        method: "POST",
+        headers: {
+          "x-api-key": process.env.GEMINIGEN_API_KEY!,
+        },
+        body: formData,
+      }
+    );
 
-    const result = await response.json();
+    const imageResult = await imageResponse.json();
 
-    return res.status(200).json({
-      success: true,
-      prompt,
-      geminigen: result
-    });
-  } catch (err: any) {
-    console.error("CRON ERROR:", err);
-    return res.status(500).json({
-      error: err.message
-    });
-  }
-}
+    if (!imageResult.image_url_
