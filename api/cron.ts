@@ -30,15 +30,19 @@ Jawab hanya 1 paragraf prompt tanpa penjelasan tambahan.
     formData.append("model", "nano-banana-pro");
 
     const response = await fetch(
-      "https://api.geminigen.ai/uapi/v1/image-gen",
-      {
-        method: "POST",
-        headers: {
-          "x-api-key": process.env.GEMINIGEN_API_KEY!
-        },
-        body: formData
-      }
-    );
+  "https://api.geminigen.ai/v1/images",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.GEMINIGEN_API_KEY!
+    },
+    body: JSON.stringify({
+      prompt: prompt,
+      model: "nano-banana-pro"
+    })
+  }
+);
 
     const result = await response.json();
 
