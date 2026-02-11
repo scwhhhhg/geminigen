@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Groq from "groq-sdk";
-import { uploadToR2 } from "../lib/r2";
+import { getJobs, saveJobs } from "../lib/store";
 
 export default async function handler(
   req: VercelRequest,
@@ -8,12 +8,10 @@ export default async function handler(
 ) {
   try {
     if (req.method !== "POST") {
-      return res.status(200).json({ alive: true });
+      return res.json({ alive: true });
     }
 
-    // =============================
-    // 1️⃣ Generate Prompt (Groq)
-    // =============================
+    // 1️⃣ Generate Prompt
     const groq = new Groq({
       apiKey: process.env.GROQ_API_KEY!,
     });
@@ -23,28 +21,20 @@ export default async function handler(
       messages: [
         {
           role: "user",
-          content: `
-Buat 1 prompt foto wanita berhijab realistis ala Instagram/Pinterest.
-Detailkan pose estetik, lighting natural, kamera profesional,
-depth of field, suasana hangat, photorealistic.
-Jawab hanya 1 paragraf.
-          `,
+          content:
+            "Buat 1 prompt foto wanita berhijab realistis ala Instagram, photorealistic, DSLR, soft lighting.",
         },
       ],
     });
 
     const prompt = completion.choices[0].message.content;
 
-    // =============================
-    // 2️⃣ Generate Image (GeminiGen)
-    // =============================
+    // 2️⃣ Create GeminiGen Job
     const formData = new FormData();
     formData.append("prompt", prompt!);
     formData.append("model", "nano-banana-pro");
-    formData.append("aspect_ratio", "4:5");
-    formData.append("style", "Photorealistic");
 
-    const imageResponse = await fetch(
+    const response = await fetch(
       "https://api.geminigen.ai/uapi/v1/generate_image",
       {
         method: "POST",
@@ -55,6 +45,28 @@ Jawab hanya 1 paragraf.
       }
     );
 
-    const imageResult = await imageResponse.json();
+    const result = await response.json();
 
-    if (!imageResult.image_url_
+    if (!result.job_id) {
+      return res.status(500).json(result);
+    }
+
+    // 3️⃣ Save Job
+    const jobs = await getJobs();
+    jobs.push({
+      job_id: result.job_id,
+      prompt,
+      status: "processing",
+      created_at: Date.now(),
+    });
+
+    await saveJobs(jobs);
+
+    return res.json({
+      success: true,
+      job_id: result.job_id,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+}
