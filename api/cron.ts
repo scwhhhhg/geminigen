@@ -30,7 +30,7 @@ Jawab hanya 1 paragraf prompt tanpa penjelasan tambahan.
     formData.append("model", "nano-banana-pro");
 
     const response = await fetch(
-  "https://api.geminigen.ai/v1/images",
+  "https://api.geminigen.ai/uapi/v1/generate_image",
   {
     method: "POST",
     headers: {
